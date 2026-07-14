@@ -11,7 +11,7 @@ function mobileTabletCheck() {
     )
       check = true;
   })(
-    typeof window !== 'undefined' ? 
+    typeof window !== 'undefined' ?
       navigator.userAgent ||
       navigator.vendor ||
       ('opera' in window && typeof window.opera === 'string'
@@ -30,42 +30,44 @@ export const WHISPER_CONFIG = {
   }.wav`,
   DEFAULT_MODEL: "Xenova/whisper-tiny",
   DEFAULT_SUBTASK: "transcribe",
-  DEFAULT_LANGUAGE: "english",
+  DEFAULT_LANGUAGE: "chinese",
   DEFAULT_QUANTIZED: isMobileOrTablet,
-  DEFAULT_MULTILINGUAL: false,
+  DEFAULT_MULTILINGUAL: true,
 };
 
 export const SUBSCRIPTION_PLANS = {
   FREE: {
     id: 'free',
-    name: 'Free',
+    name: '免费版',
     price: 0,
     monthlyMinutes: 30,
-    features: ['Basic transcription', 'Small models only', 'Web interface'],
+    features: ['基础转录', '网页端使用', '导出 TXT 格式'],
   },
   PRO: {
     id: 'pro',
-    name: 'Pro',
-    price: 9,
-    monthlyMinutes: 600, // 10 hours
+    name: '专业版',
+    price: 29,
+    monthlyMinutes: 600,
     features: [
-      'All transcription models',
-      'History & search',
-      'Multiple export formats',
-      'API access',
+      '所有转录模型',
+      '转录历史记录',
+      '多格式导出（TXT/DOC/SRT/VTT）',
+      'AI 智能总结',
+      '优先处理队列',
     ],
   },
   BUSINESS: {
     id: 'business',
-    name: 'Business',
-    price: 29,
-    monthlyMinutes: -1, // unlimited
+    name: '企业版',
+    price: 99,
+    monthlyMinutes: -1,
     features: [
-      'Unlimited transcription',
-      'Priority support',
-      'Team collaboration',
-      'Custom integrations',
-      'Advanced analytics',
+      '无限转录时长',
+      'AI 小红书图文生成',
+      'AI 视频脚本生成',
+      'API 接口接入',
+      '优先客服支持',
+      '团队协作',
     ],
   },
 };
@@ -75,4 +77,5 @@ export const API_ENDPOINTS = {
   USER_USAGE: '/api/usage',
   STRIPE_WEBHOOK: '/api/stripe/webhook',
   SUBSCRIPTION: '/api/subscription',
+  AI_PROCESS: '/api/ai/process',
 };

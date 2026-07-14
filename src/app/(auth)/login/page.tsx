@@ -10,7 +10,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
     getSession().then((session) => {
       if (session) {
         router.push('/dashboard');
@@ -21,34 +20,16 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const result = await signIn('google', { 
+      const result = await signIn('google', {
         callbackUrl: '/dashboard',
-        redirect: false 
+        redirect: false
       });
-      
-      if (result?.url) {
-        router.push(result.url);
-      }
-    } catch (error) {
-      console.error('Sign in error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const handleGitHubSignIn = async () => {
-    setIsLoading(true);
-    try {
-      const result = await signIn('github', { 
-        callbackUrl: '/dashboard',
-        redirect: false 
-      });
-      
       if (result?.url) {
         router.push(result.url);
       }
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('登录失败:', error);
     } finally {
       setIsLoading(false);
     }
@@ -61,21 +42,21 @@ export default function LoginPage() {
           <div className="mx-auto text-center">
             <Link href="/">
               <h2 className="text-3xl font-extrabold text-gray-900">
-                WhisperSaaS
+                🎙️ 语音转文字
               </h2>
             </Link>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            登录你的账号
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
+            或{' '}
             <Link href="/" className="font-medium text-blue-600 hover:text-blue-500">
-              go back to homepage
+              返回首页
             </Link>
           </p>
         </div>
-        
+
         <div className="mt-8 space-y-6">
           <div className="space-y-4">
             <button
@@ -103,24 +84,7 @@ export default function LoginPage() {
                   />
                 </svg>
               </span>
-              {isLoading ? 'Signing in...' : 'Continue with Google'}
-            </button>
-
-            <button
-              onClick={handleGitHubSignIn}
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </span>
-              {isLoading ? 'Signing in...' : 'Continue with GitHub'}
+              {isLoading ? '登录中...' : '使用 Google 登录'}
             </button>
           </div>
 
@@ -130,23 +94,23 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Free plan includes</span>
+                <span className="px-2 bg-gray-50 text-gray-500">免费方案包含</span>
               </div>
             </div>
-            
+
             <div className="mt-6">
               <ul className="text-sm text-gray-600 space-y-2">
                 <li className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  30 minutes of transcription per month
+                  每月 30 分钟免费转录
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  Basic transcription models
+                  基础转录模型
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  Web interface access
+                  网页版完整功能
                 </li>
               </ul>
             </div>

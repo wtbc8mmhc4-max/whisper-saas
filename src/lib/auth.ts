@@ -1,7 +1,6 @@
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import GitHubProvider from 'next-auth/providers/github';
-import { supabase, dbQueries } from './supabase';
+import { dbQueries, getSupabaseClient } from './supabase';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,17 +8,13 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
   ],
   callbacks: {
     async signIn({ user, account }) {
       if (!user.email) return false;
 
       try {
-        // Check if user exists in our database
+        const supabase = getSupabaseClient();
         const { data: existingUser } = await supabase
           .from('users')
           .select('id')
@@ -27,7 +22,6 @@ export const authOptions: NextAuthOptions = {
           .single();
 
         if (!existingUser) {
-          // Create new user with default subscription and usage
           const newUser = await dbQueries.createUser({
             email: user.email!,
             name: user.name || undefined,
@@ -35,16 +29,14 @@ export const authOptions: NextAuthOptions = {
             provider_id: account?.providerAccountId,
           });
 
-          // Create default subscription (free plan)
           await supabase.from('subscriptions').insert({
             user_id: newUser.id,
             plan_id: 'free',
             status: 'active',
             current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           });
 
-          // Create usage record
           await supabase.from('usage').insert({
             user_id: newUser.id,
             current_period_minutes: 0,
@@ -56,7 +48,7 @@ export const authOptions: NextAuthOptions = {
 
         return true;
       } catch (error) {
-        console.error('Error during sign in:', error);
+        console.error('登录失败:', error);
         return false;
       }
     },
@@ -64,11 +56,11 @@ export const authOptions: NextAuthOptions = {
       if (session.user?.email) {
         try {
           const userData = await dbQueries.getUser(token.sub!);
-          session.user.id = userData.id;
-          session.user.subscription = userData.subscription;
-          session.user.usage = userData.usage;
+          session.user.id = userData.id as string;
+          session.user.subscription = userData.subscription as any;
+          session.user.usage = userData.usage as any;
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('获取用户数据失败:', error);
         }
       }
       return session;
@@ -76,17 +68,18 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (user && account) {
         try {
+          const supabase = getSupabaseClient();
           const { data: userData } = await supabase
             .from('users')
             .select('id')
             .eq('email', user.email!)
             .single();
-          
+
           if (userData) {
-            token.sub = userData.id;
+            token.sub = userData.id as string;
           }
         } catch (error) {
-          console.error('Error in JWT callback:', error);
+          console.error('JWT 处理失败:', error);
         }
       }
       return token;
