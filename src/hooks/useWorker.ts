@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export interface MessageEventHandler {
   (event: MessageEvent): void;
@@ -8,26 +8,38 @@ export interface MessageEventHandler {
 
 export function useWorker(messageEventHandler: MessageEventHandler): Worker | null {
   const [worker, setWorker] = useState<Worker | null>(null);
+  const handlerRef = useRef(messageEventHandler);
 
+  // Keep handler ref updated without re-creating the worker
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const newWorker = createWorker(messageEventHandler);
-      setWorker(newWorker);
-
-      return () => {
-        newWorker.terminate();
-      };
-    }
+    handlerRef.current = messageEventHandler;
   }, [messageEventHandler]);
 
-  return worker;
-}
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-function createWorker(messageEventHandler: MessageEventHandler): Worker {
-  const worker = new Worker(new URL("../utils/worker.js", import.meta.url), {
-    type: "module",
-  });
-  
-  worker.addEventListener("message", messageEventHandler);
+    let newWorker: Worker | null = null;
+
+    try {
+      newWorker = new Worker(new URL("../utils/worker.js", import.meta.url), {
+        type: "module",
+      });
+      newWorker.addEventListener("message", (event) => {
+        handlerRef.current(event);
+      });
+      setWorker(newWorker);
+      console.log("Worker created successfully");
+    } catch (err) {
+      console.error("Failed to create worker:", err);
+      setWorker(null);
+    }
+
+    return () => {
+      if (newWorker) {
+        newWorker.terminate();
+      }
+    };
+  }, []); // Only create worker once on mount
+
   return worker;
 }
