@@ -25,10 +25,11 @@ export const dbQueries = {
       .from('users')
       .select('*, subscription(*), usage(*)')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
-    return data;
+    // If no subscription/usage rows exist yet, provide defaults
+    return data || null;
   },
 
   async createUser(userData: { email: string; name?: string; provider?: string; provider_id?: string }) {
@@ -37,7 +38,7 @@ export const dbQueries = {
       .from('users')
       .insert(userData)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -63,7 +64,7 @@ export const dbQueries = {
       .from('transcriptions')
       .insert(transcriptionData)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -76,7 +77,7 @@ export const dbQueries = {
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -89,7 +90,7 @@ export const dbQueries = {
       .from('usage')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -99,23 +100,22 @@ export const dbQueries = {
     const supabase = getSupabase();
     const { data: currentUsage } = await supabase
       .from('usage')
-      .select('total_minutes, transcriptions_count')
+      .select('current_period_minutes, total_minutes, transcriptions_count')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    const prevMinutes = (currentUsage as any)?.total_minutes || 0;
+    const prevPeriod = (currentUsage as any)?.current_period_minutes || 0;
+    const prevTotal = (currentUsage as any)?.total_minutes || 0;
     const prevCount = (currentUsage as any)?.transcriptions_count || 0;
+
+    const next = { current_period_minutes: prevPeriod + minutesUsed, total_minutes: prevTotal + minutesUsed, transcriptions_count: prevCount + 1 };
 
     const { data, error } = await supabase
       .from('usage')
-      .update({
-        current_period_minutes: minutesUsed,
-        total_minutes: prevMinutes + minutesUsed,
-        transcriptions_count: prevCount + 1
-      })
+      .upsert({ user_id: userId, ...next, last_reset: new Date().toISOString() })
       .eq('user_id', userId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -128,7 +128,7 @@ export const dbQueries = {
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -140,7 +140,7 @@ export const dbQueries = {
       .from('subscriptions')
       .upsert({ user_id: userId, ...subscriptionData })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;

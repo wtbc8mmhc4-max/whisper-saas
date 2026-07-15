@@ -2,11 +2,18 @@ import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { dbQueries, getSupabaseClient } from './supabase';
 
+const GOOGLE_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+if (!GOOGLE_ID || !GOOGLE_SECRET) {
+  console.error("WARNING: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing. Google login will fail.");
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: GOOGLE_ID || "",
+      clientSecret: GOOGLE_SECRET || "",
     }),
   ],
   callbacks: {
@@ -19,7 +26,7 @@ export const authOptions: NextAuthOptions = {
           .from('users')
           .select('id')
           .eq('email', user.email)
-          .single();
+          .maybeSingle();
 
         if (!existingUser) {
           const newUser = await dbQueries.createUser({
@@ -29,21 +36,26 @@ export const authOptions: NextAuthOptions = {
             provider_id: account?.providerAccountId,
           });
 
-          await supabase.from('subscriptions').insert({
-            user_id: newUser.id,
-            plan_id: 'free',
-            status: 'active',
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          });
-
-          await supabase.from('usage').insert({
-            user_id: newUser.id,
-            current_period_minutes: 0,
-            total_minutes: 0,
-            transcriptions_count: 0,
-            last_reset: new Date().toISOString(),
-          });
+          if (newUser?.id) {
+            const userId = newUser.id;
+            // Create subscription and usage in parallel (best effort)
+            await Promise.allSettled([
+            supabase.from('subscriptions').insert({
+              user_id: userId,
+              plan_id: 'free',
+              status: 'active',
+              current_period_start: new Date().toISOString(),
+              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            }),
+            supabase.from('usage').insert({
+              user_id: userId,
+              current_period_minutes: 0,
+              total_minutes: 0,
+              transcriptions_count: 0,
+              last_reset: new Date().toISOString(),
+            }),
+          ]);
+          }
         }
 
         return true;
@@ -53,12 +65,14 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async session({ session, token }) {
-      if (session.user?.email) {
+      if (session.user?.email && token.sub) {
         try {
-          const userData = await dbQueries.getUser(token.sub!);
-          session.user.id = userData.id as string;
-          session.user.subscription = userData.subscription as any;
-          session.user.usage = userData.usage as any;
+          const userData = await dbQueries.getUser(token.sub);
+          if (userData) {
+            session.user.id = userData.id as string;
+            session.user.subscription = userData.subscription as any;
+            session.user.usage = userData.usage as any;
+          }
         } catch (error) {
           console.error('获取用户数据失败:', error);
         }
@@ -73,7 +87,7 @@ export const authOptions: NextAuthOptions = {
             .from('users')
             .select('id')
             .eq('email', user.email!)
-            .single();
+            .maybeSingle();
 
           if (userData) {
             token.sub = userData.id as string;

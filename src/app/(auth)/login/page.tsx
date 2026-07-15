@@ -25,11 +25,15 @@ export default function LoginPage() {
         redirect: false
       });
 
-      if (result?.url) {
+      if (result?.error) {
+        console.error('登录失败:', result.error);
+        alert('登录失败，请重试。错误: ' + result.error);
+      } else if (result?.url) {
         router.push(result.url);
       }
     } catch (error) {
       console.error('登录失败:', error);
+      alert('登录失败，请检查网络连接后重试');
     } finally {
       setIsLoading(false);
     }
