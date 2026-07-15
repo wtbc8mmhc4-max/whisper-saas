@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
 const MUAPI_KEY = process.env.MUAPI_API_KEY || process.env.MUAPIAPP_API_KEY || "";
